@@ -1,12 +1,125 @@
 resolver: lts-9.1
 
+flags:
+  ether:
+    disable-tup-instances: true
+
 packages:
 - .
+- location:
+    git: git@github.com:input-output-hk/cardano-sl.git
+    # release/1.0.4
+    commit: 6e53bf599097aa0b55738a454115f76f69c9489e
+  extra-dep: true
+  subdirs:
+    - node
+    - wallet
+    - core
+    - db
+    - godtossing
+    - infra
+    - ssc
+    - txp
+    - update
+    - lrc
+- location:
+    git: https://github.com/serokell/time-units.git
+    commit: 6c3747c1ac794f952de996dd7ba8a2f6d63bf132
+  extra-dep: true
+- location:
+    git: https://github.com/serokell/acid-state.git
+    commit: 95fce1dbada62020a0b2d6aa2dd7e88eadd7214b
+  extra-dep: true
+- location:
+    git: https://github.com/serokell/kademlia.git
+    commit: 7120bb4d28e708acd52dfd61d3dca7914fac7d7f # master
+  extra-dep: true
+- location:
+    git: https://github.com/input-output-hk/plutus-prototype
+    commit: d4aa461fc69fc6957aab46b41a670c2144aefb77
+  extra-dep: true
+- location:
+    git: https://github.com/thoughtpolice/hs-ed25519
+    # We're waiting on next release
+    commit: da4247b5b3420120e20451e6a252e2a2ca15b43c
+  extra-dep: true
+- location:
+    git: https://github.com/input-output-hk/cardano-report-server.git
+    commit: 69583b607dd841b0de1ef660388172a94c660c84 # master
+  extra-dep: true
+- location:
+    git: https://github.com/serokell/time-warp-nt.git
+    commit: b199cfd9c7a1cf9bb12bc307e717d08df8b77cd1
+  extra-dep: true
+# These two are needed for time-warp-nt
+- location:
+    git: https://github.com/serokell/network-transport-tcp
+    commit: 24dd213cef81d383083feb7f5d9ce4b8a6be8168
+  extra-dep: true
+- location:
+    git: https://github.com/serokell/network-transport
+    commit: 018a50b9042c2115c3ec9c9fd5ca5f28737dd29c
+  extra-dep: true
+- location:
+    git: https://github.com/input-output-hk/cardano-crypto
+    commit: 1cde8e3a8d9093bbf571085920045c05edb3eaa4
+  extra-dep: true
+# We're using forked version of 'swagger2' package because of bug in haddock package.
+# Now we don't build Haddock-docs for this 'swagger2' package, and when that bug will
+# be fixed, we'll back to Hackage-version.
+- location:
+    git: https://github.com/serokell/swagger2
+    commit: 6693ff91be2f0b015c2ab043292587c1cc9449cf
+  extra-dep: true
+
+# Required for explorer
+- location:
+    git: https://github.com/serokell/engine.io.git
+    commit: a594e402fd450f11ad60d09ddbd93db500000632
+  extra-dep: true
+  subdirs:
+    - socket-io
+    - engine-io
+    - engine-io-wai
+
+# Forked version of "dns" with proper Windows & Unix multiple-nameservers support
+- location:
+    git: https://github.com/kazu-yamamoto/dns.git
+    commit: 08df7fe6a9242f7d76aa5040221702e26ab610f6
+  extra-dep: true
+
+- location:
+    git: https://github.com/well-typed/canonical-json.git
+    commit: 2d261bb971bada1893753b503452d9e6e217bc4a
+  extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
-  - dhall-1.8.2
+- haskoin-core-0.4.2
+- aeson-1.0.2.1
+- murmur3-1.0.3
+- pbkdf-1.1.1.1
+- secp256k1-0.4.8
+- vector-0.11.0.0
+- primitive-0.6.1.0
+- dhall-1.8.2
+- base58-bytestring-0.1.0
+- cborg-0.2.0.0
+- generic-arbitrary-0.1.0
+- log-warper-1.2.3.1
+- pvss-0.2.0
+- rocksdb-haskell-1.0.1
+- serokell-util-0.5.0
+- servant-0.10
+- servant-server-0.10
+- servant-multipart-0.10
+- systemd-1.1.2
+- universum-0.6.1
+- containers-0.5.10.2
+- fmt-0.5.0.0
+- concurrent-extra-0.7.0.11
+
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

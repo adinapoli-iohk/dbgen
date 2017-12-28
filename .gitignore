@@ -2,3 +2,5 @@
 dbgen.cabal
 *~
 .dir-locals.el
+node/configuration.yaml
+wallet-db

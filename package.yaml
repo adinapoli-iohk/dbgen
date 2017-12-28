@@ -23,7 +23,11 @@ dependencies:
 - base >= 4.7 && < 5
 - dhall
 - text
+- time
 - string-conv
+- haskoin-core
+- cardano-sl
+- cardano-sl-wallet
 
 library:
   source-dirs: src
@@ -43,6 +47,10 @@ executables:
     - dbgen
     - optparse-generic
     - optparse-applicative
+    - node-sketch
+    - mtl
+    - log-warper
+    - data-default
     default-extensions:
       RecordWildCards
       OverloadedStrings
