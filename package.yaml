@@ -28,6 +28,9 @@ dependencies:
 - string-conv
 - haskoin-core
 - cardano-sl
+- cardano-sl-db
+- cardano-sl-ssc
+- cardano-sl-infra
 - cardano-sl-wallet
 
 library:
@@ -52,6 +55,7 @@ executables:
     - mtl
     - log-warper
     - data-default
+    - lens
     default-extensions:
       RecordWildCards
       OverloadedStrings
