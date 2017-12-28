@@ -6,8 +6,10 @@ module Lib where
 
 import           Control.Monad
 import           Control.Monad.IO.Class
+import qualified Data.ByteString                as B
 import           Data.Monoid
 import           Data.String.Conv
+import qualified Data.Text                      as T
 import           Data.Time.Clock.POSIX
 import           Dhall
 import           GHC.Generics                   (Generic)
@@ -77,7 +79,7 @@ generate spec@GenSpec{..} = do
 -- | Creates a new 'CWallet'.
 genWallet :: Integer -> UberMonad CWallet
 genWallet walletNum = do
-  mnemonic <- newRandomMnemonic (toS $ T.pack . show $ walletNum)
+  mnemonic <- newRandomMnemonic (toEntropy walletNum)
   newWallet mempty (walletInit mnemonic)
   where
     walletInit :: BackupPhrase -> CWalletInit
@@ -90,7 +92,14 @@ genWallet walletNum = do
     , cwBackupPhrase  = backupPhrase
       }
 
+toEntropy :: Integer -> Entropy
+toEntropy x =
+  let packs = B.unpack (toS $ show x)
+  in case length packs < 16 of
+    True  -> B.pack $ packs <> replicate (16 - length packs) 0x0
+    False -> B.pack $ take (length packs - (length packs `mod` 16)) packs
+
 newRandomMnemonic :: MonadIO m => Entropy -> m BackupPhrase
 newRandomMnemonic entropy = case toMnemonic entropy of
-  Left e  -> error e
+  Left e  -> error ("Error: " <> e)
   Right x -> pure (mkBackupPhrase12 (T.words $ toS x))
