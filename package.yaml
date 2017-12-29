@@ -24,10 +24,13 @@ dependencies:
 - dhall
 - text
 - time
+- QuickCheck
 - bytestring
 - string-conv
+- lens
 - haskoin-core
 - cardano-sl
+- cardano-sl-core
 - cardano-sl-db
 - cardano-sl-ssc
 - cardano-sl-infra

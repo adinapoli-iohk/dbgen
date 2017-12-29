@@ -9,7 +9,7 @@ import           CLI
 import           Control.Lens
 import           Control.Monad.Reader
 import           Data.Default                (def)
-import           Data.Maybe                  (fromJust)
+import           Data.Maybe                  (fromJust, fromMaybe)
 import           GHC.Conc
 import           Lib
 import           Mockable                    (Production, runProduction)
@@ -17,6 +17,7 @@ import           Options.Generic
 import           Pos.Client.CLI              (CommonArgs (..), CommonNodeArgs (..),
                                               NodeArgs (..), getNodeParams, gtSscParams)
 import           Pos.DB.Rocks.Functions
+import           Pos.DB.Rocks.Types
 import           Pos.Launcher
 import           Pos.Launcher.Configuration
 import           Pos.Network.CLI
@@ -35,8 +36,8 @@ import           System.Wlog.CanLog
 import           System.Wlog.LoggerName
 import           System.Wlog.LoggerNameBox
 
-newRealModeContext :: HasConfigurations => ConfigurationOptions -> Production (RealModeContext WalletSscType)
-newRealModeContext confOpts = do
+newRealModeContext :: HasConfigurations => NodeDBs -> ConfigurationOptions -> Production (RealModeContext WalletSscType)
+newRealModeContext dbs confOpts = do
     let nodeArgs = NodeArgs {
       sscAlgo            = GodTossingAlgo
     , behaviorConfigPath = Nothing
@@ -53,14 +54,14 @@ newRealModeContext confOpts = do
          , rebuildDB              = True
          , devSpendingGenesisI    = Nothing
          , devVssGenesisI         = Nothing
-         , keyfilePath            = "keys"
+         , keyfilePath            = "secret.key"
          , backupPhrase           = Nothing
          , externalAddress        = Nothing
          , bindAddress            = Nothing
          , peers                  = mempty
          , networkConfigOpts      = networkOps
          , jlPath                 = Nothing
-         , kademliaDumpPath       = "kademlia"
+         , kademliaDumpPath       = "kademlia.dump"
          , commonArgs             = CommonArgs {
                logConfig            = Nothing
              , logPrefix            = Nothing
@@ -69,7 +70,7 @@ newRealModeContext confOpts = do
              , configurationOptions = confOpts
              }
          , updateLatestPath       = "update"
-         , updateWithPackage      = True
+         , updateWithPackage      = False
          , noNTP                  = True
          , route53Params          = Nothing
          , enableMetrics          = False
@@ -81,7 +82,7 @@ newRealModeContext confOpts = do
     let vssSK = fromJust $ npUserSecret nodeParams ^. usVss
     let gtParams = gtSscParams cArgs vssSK (npBehaviorConfig nodeParams)
     bracketNodeResources @WalletSscType @IO nodeParams gtParams $ \NodeResources{..} ->
-        RealModeContext <$> pure nrDBs
+        RealModeContext <$> pure dbs
                         <*> pure nrSscState
                         <*> pure nrTxpState
                         <*> pure nrDlgState
@@ -91,15 +92,15 @@ newRealModeContext confOpts = do
                         <*> initQueue (defaultNetworkConfig (TopologyAuxx mempty)) Nothing
 
 
-walletRunner :: HasConfigurations => ConfigurationOptions -> UberMonad a -> IO a
-walletRunner confOpts act = runProduction $ do
+walletRunner :: HasConfigurations => ConfigurationOptions -> NodeDBs -> UberMonad a -> IO a
+walletRunner confOpts dbs act = runProduction $ do
     wwmc <- WalletWebModeContext <$> newWalletState
                                  <*> liftIO (newTVarIO def)
-                                 <*> newRealModeContext confOpts
+                                 <*> newRealModeContext dbs confOpts
     runReaderT act wwmc
 
 newWalletState :: (MonadIO m, HasConfigurations) => m WalletState
-newWalletState = liftIO $ openState True "./wallet-db"
+newWalletState = liftIO $ openState True "wallet-db"
 
 defLoggerName :: LoggerName
 defLoggerName = LoggerName "dbgen"
@@ -110,7 +111,8 @@ instance HasLoggerName IO where
 
 newConfig :: ConfigurationOptions
 newConfig = defaultConfigurationOptions {
-  cfoSystemStart = Just 0
+    cfoSystemStart = Just 1514485290
+  , cfoFilePath = "config/configuration.yaml"
   }
 
 main :: IO ()
@@ -118,6 +120,7 @@ main = do
   let cfg = newConfig
   withConfigurations cfg $ do
     cli@CLI{..} <- getRecord "DBGen"
+    dbs <- openNodeDBs False (fromMaybe "fake-db" dbPath)
     spec <- loadGenSpec config
-    walletRunner cfg (generate spec)
+    walletRunner cfg dbs (generate spec)
 

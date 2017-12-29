@@ -2,7 +2,10 @@
 dbgen.cabal
 *~
 .dir-locals.el
-node/configuration.yaml
+config/configuration.yaml
 wallet-db
 node-db
+fake-db
 keys*
+secrets
+secret.key*
