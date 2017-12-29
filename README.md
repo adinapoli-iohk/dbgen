@@ -12,4 +12,4 @@ fail with the "wrong magic" error.
 - Not passing an external RocksDB path would result in a segmentation fault (due to invalid FFI code
   usage in the `rocksdb-haskell` library)
 
-- To be documented.
+- Faking `StakeLock` sync to avoid the relevant `MVar` from deadlocking.

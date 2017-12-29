@@ -1,3 +1,3 @@
-{ wallet_spec = { account_spec = { addresses = 100 }, accounts = 1 }
-, wallets     = 10
+{ wallet_spec = { account_spec = { addresses = 1000 }, accounts = 1 }
+, wallets     = 1
 }
