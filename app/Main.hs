@@ -92,9 +92,14 @@ newRealModeContext dbs confOpts = do
                         <*> initQueue (defaultNetworkConfig (TopologyAuxx mempty)) Nothing
 
 
-walletRunner :: HasConfigurations => ConfigurationOptions -> NodeDBs -> UberMonad a -> IO a
-walletRunner confOpts dbs act = runProduction $ do
-    wwmc <- WalletWebModeContext <$> newWalletState
+walletRunner :: HasConfigurations
+             => ConfigurationOptions
+             -> NodeDBs
+             -> WalletState
+             -> UberMonad a
+             -> IO a
+walletRunner confOpts dbs ws act = runProduction $ do
+    wwmc <- WalletWebModeContext <$> pure ws
                                  <*> liftIO (newTVarIO def)
                                  <*> newRealModeContext dbs confOpts
     runReaderT act wwmc
@@ -122,5 +127,7 @@ main = do
     cli@CLI{..} <- getRecord "DBGen"
     dbs <- openNodeDBs False (fromMaybe "fake-db" dbPath)
     spec <- loadGenSpec config
-    walletRunner cfg dbs (generate spec)
+    ws <- newWalletState
+    walletRunner cfg dbs ws (generate spec)
+    closeState ws
 
