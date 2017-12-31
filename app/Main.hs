@@ -31,6 +31,7 @@ import           Pos.Wallet.Web.Mode
 import           Pos.Wallet.Web.State.Acidic
 import           Pos.Wallet.Web.State.State  (WalletState)
 import           Pos.WorkMode
+import           Stats                       (showStatsAndExit)
 import           System.IO
 import           System.Wlog.CanLog
 import           System.Wlog.LoggerName
@@ -125,7 +126,8 @@ main = do
   let cfg = newConfig
   withConfigurations cfg $ do
     cli@CLI{..} <- getRecord "DBGen"
-    dbs <- openNodeDBs False (fromMaybe "fake-db" dbPath)
+    when showStats (showStatsAndExit cli)
+    dbs <- openNodeDBs False (fromMaybe "fake-db" nodePath)
     spec <- loadGenSpec config
     ws <- newWalletState
     walletRunner cfg dbs ws (generate spec)
