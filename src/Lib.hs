@@ -7,29 +7,33 @@
 {-# LANGUAGE ViewPatterns        #-}
 module Lib where
 
+import           CLI
 import           Control.Concurrent
-import           Control.Lens                   (view)
+import           Control.Lens                         (view)
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Data.Bifunctor
-import qualified Data.ByteString                as B
+import qualified Data.ByteString                      as B
 import           Data.Monoid
 import           Data.String.Conv
-import qualified Data.Text                      as T
+import qualified Data.Text                            as T
 import           Data.Time
 import           Dhall
-import           GHC.Generics                   (Generic)
+import           GHC.Generics                         (Generic)
 import           Network.Haskoin.Crypto
-import           Pos.DB.GState.Common           (getTip)
+import           Pos.DB.GState.Common                 (getTip)
 import           Pos.StateLock
 import           Pos.Util.BackupPhrase
-import           Pos.Util.Util                  (HasLens', lensOf)
+import           Pos.Util.Servant
+import           Pos.Util.Util                        (HasLens', lensOf)
 import           Pos.Wallet.Web.Account
 import           Pos.Wallet.Web.ClientTypes
+import           Pos.Wallet.Web.ClientTypes.Instances ()
 import           Pos.Wallet.Web.Methods.Logic
 import           Pos.Wallet.Web.Methods.Restore
 import           Pos.Wallet.Web.Mode
-import qualified Test.QuickCheck                as QC
+import           Rendering
+import qualified Test.QuickCheck                      as QC
 import           Text.Printf
 
 --
@@ -82,10 +86,6 @@ timed action = do
 
 type UberMonad a = MonadWalletWebMode WalletWebMode => WalletWebMode a
 
--- | Log on stdout.
-say :: MonadIO m => String -> m ()
-say = liftIO . putStrLn
-
 fakeSync :: UberMonad ()
 fakeSync = do
   say "Faking StateLock syncing..."
@@ -94,26 +94,40 @@ fakeSync = do
   () <$ liftIO (tryPutMVar mvar tip)
 
 -- | The main entry point.
-generate :: GenSpec -> UberMonad ()
-generate spec@GenSpec{..} = do
+generate :: CLI -> GenSpec -> UberMonad ()
+generate CLI{..} spec@GenSpec{..} = do
   fakeSync
-  say $ printf "Generating %d wallets..." wallets
-  wallets <- timed (forM [1..wallets] genWallet)
-  forM_ (zip [1..] wallets) (genAccounts spec)
+  -- If `addTo` is not mempty, skip the generation
+  -- but append the requested addresses to the input
+  -- CAccountId.
+  case addTo of
+    Just accId -> addAddressesTo accId spec
+    Nothing -> do
+      say $ printf "Generating %d wallets..." wallets
+      wallets <- timed (forM [1..wallets] genWallet)
+      forM_ (zip [1..] wallets) (genAccounts spec)
   say $ printf "OK."
+
+addAddressesTo :: AccountId -> GenSpec -> UberMonad ()
+addAddressesTo cid spec = genAddresses spec cid
 
 genAccounts :: GenSpec -> (Int, CWallet) -> UberMonad ()
 genAccounts spec@(wallet_spec -> wspec) (idx, wallet) = do
   let accs = accounts wspec
   say $ printf "Generating %d accounts for Wallet %d..." accs idx
   cAccounts <- timed (forM [1..accs] (genAccount wallet))
-  forM_ cAccounts (genAddresses spec (cwId wallet))
+  let cids = map toAccountId cAccounts
+  forM_ cids (genAddresses spec)
 
-genAddresses :: GenSpec -> CId Wal -> CAccount -> UberMonad ()
-genAddresses (account_spec . wallet_spec -> aspec) walletId cAccount = do
+toAccountId :: CAccount -> AccountId
+toAccountId CAccount{..} = either (error . toS) id (decodeCType caId)
+
+genAddresses :: GenSpec -> AccountId -> UberMonad ()
+genAddresses (account_spec . wallet_spec -> aspec) cid = do
   let addrs = addresses aspec
-  say $ printf "Generating %d addresses for Account %s..." addrs (show $ caId cAccount)
-  timed (forM_ [1..addrs] (const $ genAddress walletId cAccount))
+  say $ printf "Generating %d addresses for Account %s..." addrs (renderAccountId cid)
+  timed (forM_ [1..addrs] (const $ genAddress cid))
+
 
 -- | Creates a new 'CWallet'.
 genWallet :: Integer -> UberMonad CWallet
@@ -165,10 +179,7 @@ genAccount CWallet{..} accountNum = do
       }
 
 -- | Creates a new 'CAddress'.
-genAddress :: CId Wal -> CAccount -> UberMonad CAddress
-genAddress walletId (caId -> cid) = do
-  let (_, addrNum) = bimap id (read . toS) (T.breakOnEnd "@" (extract cid))
-  newAddress RandomSeed mempty (AccountId walletId (fromIntegral addrNum))
-  where
-    extract :: CAccountId -> T.Text
-    extract (CAccountId i) = i
+genAddress :: AccountId -> UberMonad CAddress
+genAddress cid = do
+  let (walletId, addrNum) = (aiWId cid, aiIndex cid)
+  newAddress RandomSeed mempty (AccountId walletId addrNum)

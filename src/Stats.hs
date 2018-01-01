@@ -14,7 +14,6 @@ import           Data.Monoid
 import           Data.String
 import           Data.String.Conv
 import qualified Data.Text                        as T
-import           Lib                              (say)
 import           Pos.Launcher.Configuration
 import           Pos.Wallet.Web.ClientTypes.Types
 import           Pos.Wallet.Web.State.Acidic
@@ -24,7 +23,8 @@ import           Serokell.AcidState.ExtendedState
 import           System.Exit
 import           Text.Printf
 
-{-
+{- For reference:
+
 data WalletStorage = WalletStorage
     { _wsWalletInfos     :: !(HashMap (CId Wal) WalletInfo)
     , _wsAccountInfos    :: !(HashMap AccountId AccountInfo)
@@ -47,12 +47,12 @@ showStatsAndExit CLI{..} = do
   bracket (openState False db) (\x -> closeState x >> exitSuccess) $ \db -> do
     WalletStorage{..} <- getStorage db
     let wallets  = HM.elems _wsWalletInfos
-    let accounts = HM.elems _wsAccountInfos
+    let accounts = HM.toList _wsAccountInfos
     say $ bold "Wallets:" <> printf " %d"  (length wallets)
     listOf (map renderWallet wallets)
     blankLine
     say $ bold "Accounts:" <> printf " %d" (length accounts)
-    listOf (map (caName . _aiMeta) accounts)
+    listOf (map renderAccount accounts)
     say "\n"
     say $ printf "Number of used addresses: %d" (length _wsUsedAddresses)
     say $ printf "Number of change addresses: %d" (length _wsChangeAddresses)

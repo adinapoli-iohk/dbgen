@@ -9,7 +9,7 @@ import           CLI
 import           Control.Lens
 import           Control.Monad.Reader
 import           Data.Default                (def)
-import           Data.Maybe                  (fromJust, fromMaybe)
+import           Data.Maybe                  (fromJust, fromMaybe, isJust)
 import           GHC.Conc
 import           Lib
 import           Mockable                    (Production, runProduction)
@@ -105,8 +105,11 @@ walletRunner confOpts dbs ws act = runProduction $ do
                                  <*> newRealModeContext dbs confOpts
     runReaderT act wwmc
 
-newWalletState :: (MonadIO m, HasConfigurations) => m WalletState
-newWalletState = liftIO $ openState True "wallet-db"
+newWalletState :: (MonadIO m, HasConfigurations) => Bool -> m WalletState
+newWalletState recreate =
+  -- If the user passed the `--add-to` option, it means we don't have
+  -- to rebuild the DB, but rather append stuff into it.
+  liftIO $ openState (not recreate) "wallet-db"
 
 defLoggerName :: LoggerName
 defLoggerName = LoggerName "dbgen"
@@ -129,7 +132,7 @@ main = do
     when showStats (showStatsAndExit cli)
     dbs <- openNodeDBs False (fromMaybe "fake-db" nodePath)
     spec <- loadGenSpec config
-    ws <- newWalletState
-    walletRunner cfg dbs ws (generate spec)
+    ws <- newWalletState (isJust addTo)
+    walletRunner cfg dbs ws (generate cli spec)
     closeState ws
 

@@ -6,6 +6,8 @@ import           Data.Monoid
 import           Data.String.Conv
 import           Options.Applicative
 import           Options.Generic
+import           Pos.Util.Servant
+import           Pos.Wallet.Web.ClientTypes.Instances ()
 import           Pos.Wallet.Web.ClientTypes.Types
 
 data CLI = CLI {
@@ -15,7 +17,7 @@ data CLI = CLI {
     -- ^ The path to a valid rocksdb database.
   , walletPath :: Maybe FilePath
     -- ^ The path to a valid acid-state database.
-  , addTo      :: Maybe CAccountId
+  , addTo      :: Maybe AccountId
     -- ^ If specified, only append addresses to the
     -- given <wallet_id@account_id>
   , showStats  :: Bool
@@ -33,8 +35,13 @@ instance ParseRecord CLI where
               <*> optional (strOption (long "walletDB" <> metavar "acidstate-path"
                              <> help "A path to a valid acidstate database."
                                       ))
-              <*> fmap (fmap (CAccountId . toS))
-                  (optional (strOption (long "add-to" <> metavar "walletId@accountId"
-                             <> help "Append to an existing wallet & account."
+              <*> (optional (option (eitherReader readAccountId)
+                            (long "add-to" <> metavar "walletId@accountId"
+                                           <> help "Append to an existing wallet & account."
               )))
               <*> switch (long "stats" <> help "Show stats for this wallet.")
+
+readAccountId :: String -> Either String AccountId
+readAccountId str = case decodeCType (CAccountId (toS str)) of
+  Left e  -> Left (toS e)
+  Right x -> Right x

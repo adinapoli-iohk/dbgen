@@ -1,10 +1,10 @@
 
 module Rendering where
 
+import           Control.Monad.IO.Class
 import qualified Data.HashMap.Strict              as HM
 import           Data.Monoid
 import qualified Data.Text                        as T
-import           Lib                              (say)
 import           Pos.Wallet.Web.ClientTypes.Types
 import           Pos.Wallet.Web.State.Storage
 import           System.Console.ANSI
@@ -16,6 +16,13 @@ renderWallet WalletInfo{..} = T.pack $
                                       (renderReady _wiIsReady)
                                       (renderSync _wiSyncTip)
                                       (renderPendingTxs _wsPendingTxs)
+
+renderAccount :: (AccountId, AccountInfo) -> T.Text
+renderAccount (cid, AccountInfo{..}) = T.pack $
+  printf "%s, %s, addresses: %s, removed: %s" (bold $ T.unpack $ caName _aiMeta)
+                                              (renderAccountId cid)
+                                              (cyan $ show $ HM.size _aiAddresses)
+                                              (cyan $ show $ HM.size _aiRemovedAddresses)
 
 renderSync :: WalletTip -> String
 renderSync wt = case wt of
@@ -42,6 +49,9 @@ yellow = colored Red
 green :: String -> String
 green = colored Green
 
+cyan :: String -> String
+cyan = colored Cyan
+
 renderReady :: Bool -> String
 renderReady True  = green "ready"
 renderReady False = yellow "restoring"
@@ -51,3 +61,13 @@ listOf = putStrLn . T.unpack . mappend "\n- " . T.intercalate "\n- "
 
 blankLine :: IO ()
 blankLine = say "\n"
+
+-- | Log on stdout.
+say :: MonadIO m => String -> m ()
+say = liftIO . putStrLn
+
+renderAccountId :: AccountId -> String
+renderAccountId AccountId{..} = printf "%s@%s" (renderWId aiWId) (cyan (show aiIndex))
+
+renderWId :: CId Wal -> String
+renderWId (CId (CHash hash)) = cyan (T.unpack hash)
