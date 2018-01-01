@@ -22,6 +22,8 @@ data CLI = CLI {
     -- given <wallet_id@account_id>
   , showStats  :: Bool
     -- ^ If true, print the stats for the `wallet-db`
+  , genProd    :: Bool
+    -- ^ If true, generate a DB targeting mainnet.
   }
 
 instance ParseRecord CLI where
@@ -40,6 +42,7 @@ instance ParseRecord CLI where
                                            <> help "Append to an existing wallet & account."
               )))
               <*> switch (long "stats" <> help "Show stats for this wallet.")
+              <*> switch (long "prod" <> help "Generate for mainnet.")
 
 readAccountId :: String -> Either String AccountId
 readAccountId str = case decodeCType (CAccountId (toS str)) of

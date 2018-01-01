@@ -55,7 +55,7 @@ newRealModeContext dbs confOpts = do
          , rebuildDB              = True
          , devSpendingGenesisI    = Nothing
          , devVssGenesisI         = Nothing
-         , keyfilePath            = "secret.key"
+         , keyfilePath            = "test-secret.key"
          , backupPhrase           = Nothing
          , externalAddress        = Nothing
          , bindAddress            = Nothing
@@ -118,17 +118,18 @@ instance HasLoggerName IO where
   getLoggerName = pure defLoggerName
   modifyLoggerName _ x = x
 
-newConfig :: ConfigurationOptions
-newConfig = defaultConfigurationOptions {
-    cfoSystemStart = Just 1514485290
+newConfig :: CLI -> ConfigurationOptions
+newConfig CLI{..} = defaultConfigurationOptions {
+    cfoSystemStart = if genProd then Nothing else Just 1514485290
   , cfoFilePath = "config/configuration.yaml"
+  , cfoKey = if genProd then "mainnet_wallet_macos64" else "dev"
   }
 
 main :: IO ()
 main = do
-  let cfg = newConfig
+  cli@CLI{..} <- getRecord "DBGen"
+  let cfg = newConfig cli
   withConfigurations cfg $ do
-    cli@CLI{..} <- getRecord "DBGen"
     when showStats (showStatsAndExit cli)
     dbs <- openNodeDBs False (fromMaybe "fake-db" nodePath)
     spec <- loadGenSpec config

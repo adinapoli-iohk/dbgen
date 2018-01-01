@@ -9,3 +9,8 @@ fake-db
 keys*
 secrets
 secret.key*
+*.prof
+mainnet-genesis.json
+production-db
+*.key
+*.key.lock
