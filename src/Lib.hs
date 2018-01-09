@@ -21,6 +21,7 @@ import           Data.Time
 import           Dhall
 import           GHC.Generics                         (Generic)
 import           Network.Haskoin.Crypto
+import           Pos.Crypto.Random
 import           Pos.DB.GState.Common                 (getTip)
 import           Pos.StateLock
 import           Pos.Util.BackupPhrase
@@ -132,7 +133,8 @@ genAddresses (account_spec . wallet_spec -> aspec) cid = do
 -- | Creates a new 'CWallet'.
 genWallet :: Integer -> UberMonad CWallet
 genWallet walletNum = do
-  mnemonic <- newRandomMnemonic (toEntropy walletNum)
+  entropy  <- randomNumber walletNum
+  mnemonic <- newRandomMnemonic (toEntropy entropy)
   r <- newWallet mempty (walletInit mnemonic)
   return r
   where
