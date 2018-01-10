@@ -8,6 +8,7 @@
 module Lib where
 
 import           CLI
+import           Types (UberMonad)
 import           Control.Concurrent
 import           Control.Lens                         (view)
 import           Control.Monad
@@ -84,8 +85,6 @@ timed action = do
   let diff = fromEnum $ after `diffUTCTime` before
   liftIO $ putStrLn $ printf "Action took %f seconds." (fromIntegral diff / (10^12 :: Double))
   return res
-
-type UberMonad a = MonadWalletWebMode WalletWebMode => WalletWebMode a
 
 fakeSync :: UberMonad ()
 fakeSync = do

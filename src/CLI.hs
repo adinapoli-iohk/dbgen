@@ -9,20 +9,24 @@ import           Options.Generic
 import           Pos.Util.Servant
 import           Pos.Wallet.Web.ClientTypes.Instances ()
 import           Pos.Wallet.Web.ClientTypes.Types
+import           Text.Read                            (readMaybe)
+import           Types                                (Method)
 
 data CLI = CLI {
-    config     :: FilePath
+    config      :: FilePath
     -- ^ The path to the config file
-  , nodePath   :: Maybe FilePath
+  , nodePath    :: Maybe FilePath
     -- ^ The path to a valid rocksdb database.
-  , walletPath :: Maybe FilePath
+  , walletPath  :: Maybe FilePath
     -- ^ The path to a valid acid-state database.
-  , addTo      :: Maybe AccountId
+  , addTo       :: Maybe AccountId
     -- ^ If specified, only append addresses to the
     -- given <wallet_id@account_id>
-  , showStats  :: Bool
+  , showStats   :: Bool
     -- ^ If true, print the stats for the `wallet-db`
-  , genProd    :: Bool
+  , genProd     :: Bool
+    -- ^ If true, generate a DB targeting mainnet.
+  , queryMethod :: Maybe Method
     -- ^ If true, generate a DB targeting mainnet.
   }
 
@@ -43,6 +47,7 @@ instance ParseRecord CLI where
               )))
               <*> switch (long "stats" <> help "Show stats for this wallet.")
               <*> switch (long "prod" <> help "Generate for mainnet.")
+              <*> ((readMaybe =<<) <$> (optional (strOption (long "query" <> help "Query a predefined endpoint."))))
 
 readAccountId :: String -> Either String AccountId
 readAccountId str = case decodeCType (CAccountId (toS str)) of

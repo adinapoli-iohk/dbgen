@@ -17,7 +17,9 @@ packages:
 - location:
     git: git@github.com:input-output-hk/cardano-sl.git
     # master
-    commit: b243a7a9c2a41f7ddad7a62e107d7e60a87632b2
+    # commit: b243a7a9c2a41f7ddad7a62e107d7e60a87632b2
+    # Alf hotfix
+    commit: cc7f8163864bda7505f8678d92aa5f4611d6f3ca
     # release/1.0.4
     # commit: 6e53bf599097aa0b55738a454115f76f69c9489e
   extra-dep: true

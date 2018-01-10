@@ -6,9 +6,12 @@
 module Main where
 
 import           CLI
+import           QueryMethods
+import           Types
 import           Control.Lens
 import           Control.Monad.Reader
 import           Data.Default                (def)
+import           Data.IORef
 import           Data.Maybe                  (fromJust, fromMaybe, isJust)
 import           GHC.Conc
 import           Lib
@@ -33,6 +36,7 @@ import           Pos.Wallet.Web.State.State  (WalletState)
 import           Pos.WorkMode
 import           Stats                       (showStatsAndExit)
 import           System.IO
+import           System.Exit
 import           System.Wlog.CanLog
 import           System.Wlog.LoggerName
 import           System.Wlog.LoggerNameBox
@@ -102,6 +106,7 @@ walletRunner :: HasConfigurations
 walletRunner confOpts dbs ws act = runProduction $ do
     wwmc <- WalletWebModeContext <$> pure ws
                                  <*> liftIO (newTVarIO def)
+                                 <*> (AddrCIdHashes <$> liftIO (newIORef mempty))
                                  <*> newRealModeContext dbs confOpts
     runReaderT act wwmc
 
@@ -130,10 +135,12 @@ main = do
   cli@CLI{..} <- getRecord "DBGen"
   let cfg = newConfig cli
   withConfigurations cfg $ do
-    when showStats (showStatsAndExit cli)
+    when showStats   (showStatsAndExit cli)
     dbs <- openNodeDBs False (fromMaybe "fake-db" nodePath)
     spec <- loadGenSpec config
     ws <- newWalletState (isJust addTo)
-    walletRunner cfg dbs ws (generate cli spec)
+    walletRunner cfg dbs ws $ do
+      when (isJust queryMethod) $ (queryMethods queryMethod >> liftIO exitSuccess)
+      generate cli spec
     closeState ws
 
