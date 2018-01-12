@@ -3,6 +3,7 @@
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications    #-}
+
 module Main where
 
 import           CLI
@@ -10,6 +11,8 @@ import           QueryMethods
 import           Types
 import           Control.Lens
 import           Control.Monad.Reader
+import           Serokell.Util               (sec)
+import           Data.Text                   (pack)
 import           Data.Default                (def)
 import           Data.IORef
 import           Data.Maybe                  (fromJust, fromMaybe, isJust)
@@ -19,6 +22,7 @@ import           Mockable                    (Production, runProduction)
 import           Options.Generic
 import           Pos.Client.CLI              (CommonArgs (..), CommonNodeArgs (..),
                                               NodeArgs (..), getNodeParams, gtSscParams)
+import           Pos.Core                    (Timestamp (..))
 import           Pos.DB.Rocks.Functions
 import           Pos.DB.Rocks.Types
 import           Pos.Launcher
@@ -106,7 +110,7 @@ walletRunner :: HasConfigurations
 walletRunner confOpts dbs ws act = runProduction $ do
     wwmc <- WalletWebModeContext <$> pure ws
                                  <*> liftIO (newTVarIO def)
-                                 <*> (AddrCIdHashes <$> liftIO (newIORef mempty))
+                                 -- <*> (AddrCIdHashes <$> liftIO (newIORef mempty))
                                  <*> newRealModeContext dbs confOpts
     runReaderT act wwmc
 
@@ -123,11 +127,12 @@ instance HasLoggerName IO where
   getLoggerName = pure defLoggerName
   modifyLoggerName _ x = x
 
+-- TODO(ks): Fix according to Pos.Client.CLI.Options
 newConfig :: CLI -> ConfigurationOptions
 newConfig CLI{..} = defaultConfigurationOptions {
-    cfoSystemStart = if genProd then Nothing else Just 1514485290
-  , cfoFilePath = "config/configuration.yaml"
-  , cfoKey = if genProd then "mainnet_wallet_macos64" else "dev"
+    cfoSystemStart  = Timestamp . sec  <$> systemStart
+  , cfoFilePath     = fromMaybe "node/configuration.yaml" configurationPath
+  , cfoKey          = pack $ fromMaybe "dev" configurationProf
   }
 
 main :: IO ()
@@ -136,11 +141,14 @@ main = do
   let cfg = newConfig cli
   withConfigurations cfg $ do
     when showStats   (showStatsAndExit cli)
-    dbs <- openNodeDBs False (fromMaybe "fake-db" nodePath)
+
+    dbs  <- openNodeDBs False (fromMaybe "fake-db" nodePath)
     spec <- loadGenSpec config
-    ws <- newWalletState (isJust addTo)
+    ws   <- newWalletState (isJust addTo)
+
     walletRunner cfg dbs ws $ do
       when (isJust queryMethod) $ (queryMethods queryMethod >> liftIO exitSuccess)
       generate cli spec
+
     closeState ws
 
