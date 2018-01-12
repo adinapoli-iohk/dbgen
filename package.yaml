@@ -44,23 +44,21 @@ dependencies:
 - cardano-sl-infra
 - cardano-sl-wallet
 
-library:
-  source-dirs: src
-  default-extensions:
-    OverloadedStrings
-    RecordWildCards
-    FlexibleContexts
-
 executables:
   dbgen:
     main:                Main.hs
-    source-dirs:         app
+    source-dirs:         src
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+
+when:
+  - condition: os(linux)
+    ghc-options:       -optl-fuse-ld=gold
+    ld-options:        -fuse-ld=gold
+
     dependencies:
-    - dbgen
     - optparse-generic
     - optparse-applicative
     - node-sketch
@@ -72,3 +70,5 @@ executables:
       RecordWildCards
       OverloadedStrings
       FlexibleContexts
+
+

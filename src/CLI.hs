@@ -13,22 +13,26 @@ import           Text.Read                            (readMaybe)
 import           Types                                (Method)
 
 data CLI = CLI {
-    config      :: FilePath
+    config              :: FilePath
     -- ^ The path to the config file
-  , nodePath    :: Maybe FilePath
+    , nodePath          :: Maybe FilePath
     -- ^ The path to a valid rocksdb database.
-  , walletPath  :: Maybe FilePath
+    , walletPath        :: Maybe FilePath
     -- ^ The path to a valid acid-state database.
-  , addTo       :: Maybe AccountId
+    , addTo             :: Maybe AccountId
     -- ^ If specified, only append addresses to the
     -- given <wallet_id@account_id>
-  , showStats   :: Bool
+    , configurationPath :: Maybe FilePath
+    -- ^ The path to a valid cardano-sl configuration.
+    , configurationProf :: Maybe String
+    -- ^ The configuration profile to use.
+    , systemStart       :: Maybe Int
+    -- ^ The systemStart for the application
+    , showStats         :: Bool
     -- ^ If true, print the stats for the `wallet-db`
-  , genProd     :: Bool
+    , queryMethod       :: Maybe Method
     -- ^ If true, generate a DB targeting mainnet.
-  , queryMethod :: Maybe Method
-    -- ^ If true, generate a DB targeting mainnet.
-  }
+    }
 
 instance ParseRecord CLI where
   parseRecord = CLI <$> fmap (fromMaybe "./config.dhall") (optional (
@@ -45,8 +49,15 @@ instance ParseRecord CLI where
                             (long "add-to" <> metavar "walletId@accountId"
                                            <> help "Append to an existing wallet & account."
               )))
+              <*> optional (strOption (long "configPath" <> metavar "configuration-path"
+                             <> help "A path to a valid cardano-sl configuration."
+                                      ))
+              <*> optional (strOption (long "configProf" <> metavar "configuration-profile"
+                             <> help "A valid cardano-sl configuration profile to use."
+                                      ))
+              <*> optional (option auto (long "systemStart"
+                             <> help "A valid node system start to use."))
               <*> switch (long "stats" <> help "Show stats for this wallet.")
-              <*> switch (long "prod" <> help "Generate for mainnet.")
               <*> ((readMaybe =<<) <$> (optional (strOption (long "query" <> help "Query a predefined endpoint."))))
 
 readAccountId :: String -> Either String AccountId
