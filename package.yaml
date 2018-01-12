@@ -52,12 +52,6 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-
-when:
-  - condition: os(linux)
-    ghc-options:       -optl-fuse-ld=gold
-    ld-options:        -fuse-ld=gold
-
     dependencies:
     - optparse-generic
     - optparse-applicative
@@ -70,5 +64,12 @@ when:
       RecordWildCards
       OverloadedStrings
       FlexibleContexts
+
+when:
+  - condition: os(linux)
+    ghc-options:       -optl-fuse-ld=gold
+    ld-options:        -fuse-ld=gold
+
+
 
 
